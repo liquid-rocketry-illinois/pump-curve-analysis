@@ -270,15 +270,15 @@ else:
     time.sleep(5)
     sys.exit()
 
-# Super Filter Velo
+# Super Filter Velo and find rapid changes in motor velocity
 despikeVelo = hampel_filter(rawVelo, data_col="Velo", window=100, n_sigmas=0.5, output_col="F_Velo", timestamp_col='relseconds')
 testVelo = rawVelo.merge(despikeVelo, on='relseconds', how="outer")
 testVeloPlot = testVelo.plot(x='relseconds', y=['Velo', 'F_Velo'], color=['green', 'blue'])
 testVelo['Diffs'] = testVelo['F_Velo'].diff()
-diffPlot = testVelo.plot(x='relseconds', y='Diffs')
+# diffPlot = testVelo.plot(x='relseconds', y='Diffs')
 spikeTimestamps = findSpikes(testVelo)
 addTimestampLinesToPlot(testVeloPlot, spikeTimestamps)
-addTimestampLinesToPlotRecursive(diffPlot, spikeTimestamps)
+# addTimestampLinesToPlotRecursive(diffPlot, spikeTimestamps)
 testVeloPlot.legend()
 pyplot.show(block=False)
 
@@ -363,4 +363,40 @@ filteredData['DeltaP'] = filteredData['filtered_Pt2'] - filteredData['filtered_P
 filteredData.plot(x='relseconds', y='DeltaP')
 filteredData.plot.scatter(x='filtered_Flow',y='DeltaP',s=1)
 
-pyplot.show()
+pyplot.show(block=False)
+
+# Continue To Leakage Prompt
+print("Continue to Leakage? (y/n)")
+userInput = input("> ").strip()
+if userInput.capitalize() != 'Y':
+    sys.exit()
+
+
+print("Input desired regions to use")
+print("To use the data in the region between 1,2 and the region between 5,6")
+print("Enter in form of 1:2,5:6")
+regionsInput = input("> ").strip().replace(" ", "")
+regionsInput = regionsInput.split(",")
+
+# turn string input into indexes
+# Get Indexes For Regions
+totalDeltaTime = 0.0
+for indexes in regionsInput:
+    raw = indexes.split(":")
+
+    startTime = spikeTimestamps[int(raw[0])][0]
+    endTime = spikeTimestamps[int(raw[1])][1]
+
+    totalDeltaTime += endTime-startTime
+
+print("DeltaTime: " + str(totalDeltaTime) + " (s)")
+
+# Get weight of water leaked throught test
+print("Input weight of leakage (kg)")
+weightInput = float(input("> ").strip())
+
+
+print("Leakage rate = " + str(weightInput / totalDeltaTime) + " kg/s")
+
+print("close?")
+input("> ")
