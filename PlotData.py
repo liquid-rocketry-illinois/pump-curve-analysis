@@ -147,26 +147,34 @@ def filterWithButterworth(inputData):
 
 #Find large spikes in motor velocity data
 def findSpikes(data):
+    # constants
     checkBound = 50
     maxDifference = 75.0
+
+    # Loop through the entire dataset to look for spikes
     spikeTimestamps = []
     i = 0
     while i < data.shape[0]:
         difference = abs(data['Diffs'][i])
-        if difference > maxDifference:
+        if difference > maxDifference: # Finds a spike
+            largestIndex = i
             j = -checkBound
 
-            if i < checkBound:
+            if i < checkBound: # ensure it doesn't check a negative index
                 j = -i
-            
+
+            # checks backwards and forwards for a larger spike
             while j <= checkBound and i+j < data.shape[0]:
                 testDiff = abs(data['Diffs'][i+j])
                 if testDiff > difference:
+                    difference = testDiff
+                    largestIndex = i+j
                     break
                 j += 1
             
-            midSeconds = data['relseconds'][i]
+            midSeconds = data['relseconds'][largestIndex]
 
+            # Try to find the largest timestamp before the velo change
             minSeconds = data['relseconds'][0]
             k = -1
             while k + i >= 0:
@@ -185,6 +193,7 @@ def findSpikes(data):
                     break
                 k -= 1
 
+            # Try to find the smallest timestamp after the velo change
             maxSeconds = data['relseconds'][data.shape[0]-1]
             k = 1
             while k + i < data.shape[0]:
@@ -214,6 +223,7 @@ def findSpikes(data):
 
 
 viridis = mpl.colormaps['viridis'].resampled(20)
+# Adds different colored vertical lines to a plot at the timestamps provided
 def addTimestampLinesToPlot(plot, timestamps):
     global viridis
     i = 0
@@ -222,6 +232,8 @@ def addTimestampLinesToPlot(plot, timestamps):
         i += 1
 
 
+# Adds different colored vertical lines to a plot at the timestamps provided
+# Includes the +- timstamps as well
 def addTimestampLinesToPlotRecursive(plot, timestamps):
     for spikeGroup in timestamps:
         for timestamp in spikeGroup:
