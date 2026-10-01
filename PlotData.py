@@ -7,8 +7,9 @@ from scipy.signal import lfilter,butter,filtfilt
 from matplotlib import pyplot
 import matplotlib as mpl
 
+
 def findFiles():
-    global rawPt1, rawPt2, rawFlow, rawVelo
+    global rawPt1, rawPt2, rawFlow, rawVelo, rawTc1, rawTc2, rawTc3
     csvFiles = [f.name for f in Path('.').glob('*.csv')]
     for fileName in csvFiles:
         try:
@@ -46,6 +47,61 @@ def findFiles():
             continue
         except ValueError:
             pass
+
+        try:
+            fileName.index('-0x91-0-TC1-PMP')
+            rawTc1 = pd.read_csv(fileName)
+            rawTc1 = rawTc1.rename(columns={'data':'Tc1'})
+            print("Found Tc1 Data")
+            continue
+        except ValueError:
+            pass
+
+        try:
+            fileName.index('-0x91-1-TC2-PMP')
+            rawTc2 = pd.read_csv(fileName)
+            rawTc2 = rawTc2.rename(columns={'data':'Tc2'})
+            print("Found Tc2 Data")
+            continue
+        except ValueError:
+            pass
+        
+        try:
+            fileName.index('-0x91-2-TC3-MOT')
+            rawTc3 = pd.read_csv(fileName)
+            rawTc3 = rawTc3.rename(columns={'data':'Tc3'})
+            print("Found Tc3 Data")
+            continue
+        except ValueError:
+            pass
+
+    if rawVelo is None:
+        print("Velo Data Not Found")
+        sys.exit()
+
+    if rawFlow is None:
+            print("Flow Data Not Found")
+            sys.exit()
+
+    if rawPt1 is None:
+            print("Pt1 Data Not Found")
+            sys.exit()
+
+    if rawPt2 is None:
+            print("Pt2 Data Not Found")
+            sys.exit()
+
+    if rawTc1 is None:
+        print("Tc1 Data Not Found")
+        sys.exit()
+
+    if rawTc2 is None:
+            print("Tc2 Data Not Found")
+            sys.exit()
+
+    if rawTc3 is None:
+            print("Tc3 Data Not Found")
+            sys.exit()
 
 
 def hampel_filter(df, data_col='data', window=7, n_sigmas=3, output_col='dataWithNoSpikes',
@@ -305,6 +361,9 @@ regionsInput = regionsInput.split(",")
 rawCombinedData = rawPt1.merge(rawPt2, on='relseconds', how='outer',)
 rawCombinedData = rawCombinedData.merge(rawFlow, on='relseconds', how='outer')
 rawCombinedData = rawCombinedData.merge(rawVelo, on='relseconds',how='outer')
+rawCombinedData = rawCombinedData.merge(rawTc1, on='relseconds',how='outer')
+rawCombinedData = rawCombinedData.merge(rawTc2, on='relseconds',how='outer')
+rawCombinedData = rawCombinedData.merge(rawTc3, on='relseconds',how='outer')
 rawCombinedData = rawCombinedData.sort_values('relseconds').reset_index(drop=True)
 
 rawCombinedData = rawCombinedData.interpolate('linear')
@@ -367,6 +426,7 @@ filteredData = filterWithButterworth(rawCombinedData)
 filteredData.plot(x='relseconds',y=['Pt1', 'Pt2', 'filtered_Pt1', 'filtered_Pt2'], color=['dodgerblue','salmon','blue', 'red'])
 filteredData.plot(x='relseconds', y=['Flow', 'filtered_Flow'], color=['mediumOrchid', 'purple'])
 filteredData.plot(x='relseconds', y=['Velo', 'filtered_Velo'], color=['mediumaquamarine', 'darkgreen'])
+filteredData.plot(x='relseconds', y=['Tc1', 'Tc2', 'Tc3'], color=['orange', 'yellow', 'dodgerblue'])
 
 # Calculate deltaP
 filteredData['DeltaP'] = filteredData['filtered_Pt2'] - filteredData['filtered_Pt1']
